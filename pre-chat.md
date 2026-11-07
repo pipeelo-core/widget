@@ -11,7 +11,8 @@
 ## O problema
 
 O `Pipeelo('setUser', …)` (já implementado) deixa o site declarar
-`name`/`email`/`phone`/`document`, que saem no bloco `user` de todo envio. Mas ele é
+`name`/`email`/`phone`/`document` e os dados de cadastro (gênero, nascimento e endereço), que
+saem no bloco `user` de todo envio. Mas ele é
 opcional e depende da integração: se o site não chamar (ou chamar incompleto), a
 conversa chega **anônima** e o atendente/IA gasta o começo do atendimento perguntando
 nome e contato.
@@ -52,8 +53,10 @@ tolerante** dos demais campos em rollout (`theme`, `message_preview`, `display_m
 }
 ```
 
-- `fields`: subconjunto de `name` | `email` | `phone` | `document` (as chaves do
-  `WidgetUser` em `src/shared/protocol.ts`); a ordem do array é a ordem de exibição.
+- `fields`: subconjunto das chaves do `WidgetUser` (`WIDGET_USER_FIELDS` em
+  `src/shared/protocol.ts`): `name` | `email` | `phone` | `document` | `gender` |
+  `birthday` | `country` | `state` | `city` | `cep` | `street` | `number` |
+  `neighborhood`; a ordem do array é a ordem de exibição.
 - **Ausente / `null` / `fields` vazio → sem formulário** (comportamento de hoje).
   Chaves desconhecidas dentro de `fields` são ignoradas — rollout de campos futuros
   sem quebrar painel antigo.
@@ -97,7 +100,8 @@ Strings em `src/panel/lib/strings.ts`; tema e densidade mobile como o resto do p
 ### Validação dos campos
 
 A API não valida telefone nem documento (o model só tira o que não é dígito do telefone) e
-descarta **em silêncio** o e-mail que o `FILTER_VALIDATE_EMAIL` recusa. Por isso a régua mora
+descarta **em silêncio** o e-mail que o `FILTER_VALIDATE_EMAIL` recusa — e também o gênero, a
+data de nascimento e o CEP fora do formato. Por isso a régua mora
 no painel, em `src/panel/lib/user-fields.ts`, e vale igual para o formulário e para o
 `setUser`:
 
@@ -107,6 +111,10 @@ no painel, em `src/panel/lib/user-fields.ts`, e vale igual para o formulário e 
 | `email` | o que o `FILTER_VALIDATE_EMAIL` aceita, menos parte local entre aspas e IP literal (conferido contra o PHP 8.3 em ~290 mil variações: nada que o form aceita a API descarta) | aparado |
 | `phone` | brasileiro com DDD existente — fixo de 8 dígitos (começa com 2–5) ou celular de 9 (começa com 9) —, com ou sem máscara e `55`/`+55`/`0` na frente; `55` + DDD + celular de 8 dígitos (o `wa_id` antigo do WhatsApp) ganha o 9; estrangeiro só com `+` (8 a 15 dígitos) | E.164: `+5562999990000` (a API grava `5562999990000`, o formato do WhatsApp) |
 | `document` | CPF (11 dígitos) ou CNPJ (14, **alfanumérico incluso** — emitido desde jul/2026) com dígito verificador, com ou sem máscara; sequência repetida não passa | sem máscara, em maiúsculas |
+| `gender` | `masculino`/`feminino`, `masculine`/`feminine` ou `m`/`f`, sem diferenciar maiúscula (no form, uma lista) | `masculine` ou `feminine`, os valores do cadastro |
+| `birthday` | `DD/MM/AAAA`, `DDMMAAAA` ou `AAAA-MM-DD`, data real entre 1900 e hoje | `AAAA-MM-DD` |
+| `cep` | 8 dígitos, com ou sem hífen | só os dígitos |
+| `country`, `state`, `city`, `street`, `number`, `neighborhood` | texto não vazio | aparado |
 
 - **Celular sem o 9 digitado à mão é recusado, não corrigido.** Com 10 dígitos quase sempre
   é dígito faltando, e completar sozinho aceitaria outro número com cara de válido. Só o
@@ -127,6 +135,12 @@ no painel, em `src/panel/lib/user-fields.ts`, e vale igual para o formulário e 
   direto do campo para o primeiro inválido, sem o teclado do Android fechar e reabrir. No
   toque, `preventDefault` no `pointerdown` não impede o foco; no `mousedown` sintético do
   toque, impede.
+- **Gênero é uma lista** (`<select>` com "Selecione", Masculino e Feminino): o valor já sai como
+  a API grava e não há o que digitar errado. O foco inicial e o foco no primeiro inválido valem
+  para ela como para os campos de texto.
+- **Data e CEP no teclado numérico** (`inputmode="numeric"`). O do iPhone não tem `/`, por isso
+  a data também aceita só os dígitos (`DDMMAAAA`); ao sair do campo ela volta como
+  `DD/MM/AAAA` e o CEP ganha o hífen.
 - **Teclado completo no CPF/CNPJ** (`autocapitalize="characters"`, sem `inputmode`): teclado
   numérico travaria quem tem CNPJ com letras. `autocorrect` fica de fora — o Preact o
   atribui como propriedade booleana, e `'off'` viraria `true`.

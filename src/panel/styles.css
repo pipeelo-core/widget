@@ -1036,6 +1036,29 @@ button.reply-quote {
   border-color: var(--pip-negative);
 }
 
+.prechat-select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 34px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--pip-text-soft) 50%),
+    linear-gradient(135deg, var(--pip-text-soft) 50%, transparent 50%);
+  background-position:
+    calc(100% - 19px) 50%,
+    calc(100% - 14px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+
+.prechat-select:has(option[value='']:checked) {
+  color: var(--pip-placeholder);
+}
+
+.prechat-select option {
+  color: var(--pip-text-strong);
+}
+
 .prechat-error {
   font-size: var(--pip-fs-meta);
   color: var(--pip-negative);

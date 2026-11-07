@@ -1,5 +1,5 @@
 import { safeAccentColor, textColorOn } from '../shared/color';
-import type { WidgetUser } from '../shared/protocol';
+import { WIDGET_USER_FIELDS, type WidgetUser } from '../shared/protocol';
 import { normalizeTheme, prefersDarkNow, themeIsDark } from '../shared/theme';
 import { normalizeDisplayMode } from '../shared/widget-config';
 import { createBridge } from './bridge';
@@ -43,7 +43,7 @@ function ensureViewportMeta(): void {
 function sanitizeUser(raw: unknown): WidgetUser | null {
   let user: WidgetUser | null = null;
   if (raw && typeof raw === 'object') {
-    for (const key of ['name', 'email', 'phone', 'document'] as const) {
+    for (const key of WIDGET_USER_FIELDS) {
       const value = (raw as Record<string, unknown>)[key];
       if (typeof value === 'string' && value.trim()) {
         (user = user || {})[key] = value.trim().slice(0, 255);

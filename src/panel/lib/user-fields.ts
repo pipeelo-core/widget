@@ -13,6 +13,18 @@ const CPF = { shape: /^\d{11}$/, maxWeight: 11 };
 const CNPJ = { shape: /^[\dA-Z]{12}\d\d$/, maxWeight: 9 };
 const PLACEHOLDER =
   /^(?:[A-Z][A-Z\d]*(?:_[A-Z\d]+)+|undefined|null|NaN|None|\[object Object\])$|\{\{|<\?|<%|\$\{/;
+const GENDERS = new Map([
+  ['masculino', 'masculine'],
+  ['masculine', 'masculine'],
+  ['m', 'masculine'],
+  ['feminino', 'feminine'],
+  ['feminine', 'feminine'],
+  ['f', 'feminine'],
+]);
+const BR_DATE = /^(\d\d)\/?(\d\d)\/?(\d{4})$/;
+const ISO_DATE = /^\d{4}-\d\d-\d\d$/;
+const MIN_BIRTHDAY = '1900-01-01';
+const CEP = /^\d{5}-?\d{3}$/;
 
 function normalizePhone(value: string): string | null {
   const digits = value.replace(/\D/g, '');
@@ -51,11 +63,34 @@ function normalizeDocument(value: string): string | null {
   return kind && hasValidCheckDigits(compact, kind.maxWeight) ? compact : null;
 }
 
+function localToday(): string {
+  const now = new Date();
+  return [now.getFullYear(), now.getMonth() + 1, now.getDate()]
+    .map((part) => String(part).padStart(2, '0'))
+    .join('-');
+}
+
+function normalizeBirthday(value: string): string | null {
+  const iso = value.replace(BR_DATE, '$3-$2-$1');
+  const time = ISO_DATE.test(iso) ? Date.parse(`${iso}T00:00:00Z`) : NaN;
+  const real = !Number.isNaN(time) && new Date(time).toISOString().startsWith(iso);
+  return real && iso >= MIN_BIRTHDAY && iso <= localToday() ? iso : null;
+}
+
 const NORMALIZERS: Record<UserField, (value: string) => string | null> = {
   name: (value) => value,
   email: (value) => (EMAIL.test(value) ? value : null),
   phone: normalizePhone,
   document: normalizeDocument,
+  gender: (value) => GENDERS.get(value.toLowerCase()) ?? null,
+  birthday: normalizeBirthday,
+  country: (value) => value,
+  state: (value) => value,
+  city: (value) => value,
+  cep: (value) => (CEP.test(value) ? value.replace('-', '') : null),
+  street: (value) => value,
+  number: (value) => value,
+  neighborhood: (value) => value,
 };
 
 export function isPlaceholder(value: string): boolean {
@@ -76,6 +111,12 @@ export function formatUserField(field: UserField, raw: string): string {
   }
   if (field === 'phone' && value?.startsWith('+55')) {
     return value.slice(3).replace(/^(\d\d)(\d+)(\d{4})$/, '($1) $2-$3');
+  }
+  if (field === 'birthday' && value) {
+    return value.replace(/^(\d{4})-(\d\d)-(\d\d)$/, '$3/$2/$1');
+  }
+  if (field === 'cep' && value) {
+    return value.replace(/^(\d{5})/, '$1-');
   }
   return raw;
 }

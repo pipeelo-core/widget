@@ -1,9 +1,20 @@
-export type WidgetUser = {
-  name?: string;
-  email?: string;
-  phone?: string;
-  document?: string;
-};
+export const WIDGET_USER_FIELDS = [
+  'name',
+  'email',
+  'phone',
+  'document',
+  'gender',
+  'birthday',
+  'country',
+  'state',
+  'city',
+  'cep',
+  'street',
+  'number',
+  'neighborhood',
+] as const;
+
+export type WidgetUser = Partial<Record<(typeof WIDGET_USER_FIELDS)[number], string>>;
 
 export type LoaderToPanel =
   | { __pipeelo: true; type: 'visibility'; open: boolean }

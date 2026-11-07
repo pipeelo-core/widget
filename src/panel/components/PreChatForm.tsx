@@ -10,11 +10,12 @@ const FIELD_ATTRS: Record<
   {
     label: string;
     error: string;
-    type: string;
+    type?: string;
     inputmode?: string;
     autocomplete: string;
     autocapitalize?: 'characters';
     spellcheck?: boolean;
+    options?: { value: string; label: string }[];
   }
 > = {
   name: { label: STR.preChatName, error: STR.preChatRequired, type: 'text', autocomplete: 'name' },
@@ -40,6 +41,65 @@ const FIELD_ATTRS: Record<
     autocapitalize: 'characters',
     spellcheck: false,
   },
+  gender: {
+    label: STR.preChatGender,
+    error: STR.preChatGenderRequired,
+    autocomplete: 'sex',
+    options: [
+      { value: 'masculine', label: STR.preChatMasculine },
+      { value: 'feminine', label: STR.preChatFeminine },
+    ],
+  },
+  birthday: {
+    label: STR.preChatBirthday,
+    error: STR.preChatBirthdayInvalid,
+    type: 'text',
+    inputmode: 'numeric',
+    autocomplete: 'bday',
+  },
+  country: {
+    label: STR.preChatCountry,
+    error: STR.preChatRequired,
+    type: 'text',
+    autocomplete: 'country-name',
+  },
+  state: {
+    label: STR.preChatState,
+    error: STR.preChatRequired,
+    type: 'text',
+    autocomplete: 'address-level1',
+  },
+  city: {
+    label: STR.preChatCity,
+    error: STR.preChatRequired,
+    type: 'text',
+    autocomplete: 'address-level2',
+  },
+  cep: {
+    label: STR.preChatCep,
+    error: STR.preChatCepInvalid,
+    type: 'text',
+    inputmode: 'numeric',
+    autocomplete: 'postal-code',
+  },
+  street: {
+    label: STR.preChatStreet,
+    error: STR.preChatRequired,
+    type: 'text',
+    autocomplete: 'address-line1',
+  },
+  number: {
+    label: STR.preChatNumber,
+    error: STR.preChatRequired,
+    type: 'text',
+    autocomplete: 'off',
+  },
+  neighborhood: {
+    label: STR.preChatNeighborhood,
+    error: STR.preChatRequired,
+    type: 'text',
+    autocomplete: 'address-level3',
+  },
 };
 
 const keepFocus = (event: Event) => event.preventDefault();
@@ -50,11 +110,11 @@ export function PreChatForm(props: {
 }) {
   const [values, setValues] = useState<Partial<Record<PreChatFieldKey, string>>>({});
   const [invalid, setInvalid] = useState<PreChatFieldKey[]>([]);
-  const firstRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
-      firstRef.current?.focus();
+      formRef.current?.querySelector<HTMLElement>('.prechat-input')?.focus();
     }
   }, []);
 
@@ -77,42 +137,60 @@ export function PreChatForm(props: {
     const first = rejected[0];
     if (first) {
       const input = event.currentTarget.elements.namedItem(first);
-      if (input instanceof HTMLInputElement) input.focus();
+      if (input instanceof HTMLElement) input.focus();
     } else {
       props.onSubmit(user);
     }
   };
 
   return (
-    <form class="prechat" novalidate onSubmit={submit}>
+    <form ref={formRef} class="prechat" novalidate onSubmit={submit}>
       <div class="prechat-head">
         <p class="prechat-title">{STR.preChatTitle}</p>
         <p class="prechat-intro">{STR.preChatIntro}</p>
       </div>
 
-      {props.fields.map((field, index) => {
+      {props.fields.map((field) => {
         const attrs = FIELD_ATTRS[field];
         const flagged = invalid.includes(field);
+        const className = 'prechat-input' + (flagged ? ' prechat-input--invalid' : '');
         return (
           <label class="prechat-field" key={field}>
             <span class="prechat-label">{attrs.label}</span>
-            <input
-              ref={index === 0 ? firstRef : undefined}
-              class={'prechat-input' + (flagged ? ' prechat-input--invalid' : '')}
-              name={field}
-              type={attrs.type}
-              inputmode={attrs.inputmode}
-              autocomplete={attrs.autocomplete}
-              autocapitalize={attrs.autocapitalize}
-              spellcheck={attrs.spellcheck}
-              maxlength={255}
-              value={values[field] ?? ''}
-              aria-invalid={flagged ? 'true' : undefined}
-              onInput={(event) => update(field, event.currentTarget.value)}
-              onChange={(event) =>
-                update(field, formatUserField(field, event.currentTarget.value))
-              }
-            />
+            {attrs.options ? (
+              <select
+                class={className + ' prechat-select'}
+                name={field}
+                autocomplete={attrs.autocomplete}
+                value={values[field] ?? ''}
+                aria-invalid={flagged ? 'true' : undefined}
+                onChange={(event) => update(field, event.currentTarget.value)}
+              >
+                <option value="">{STR.preChatSelect}</option>
+                {attrs.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                class={className}
+                name={field}
+                type={attrs.type}
+                inputmode={attrs.inputmode}
+                autocomplete={attrs.autocomplete}
+                autocapitalize={attrs.autocapitalize}
+                spellcheck={attrs.spellcheck}
+                maxlength={255}
+                value={values[field] ?? ''}
+                aria-invalid={flagged ? 'true' : undefined}
+                onInput={(event) => update(field, event.currentTarget.value)}
+                onChange={(event) =>
+                  update(field, formatUserField(field, event.currentTarget.value))
+                }
+              />
+            )}
             {flagged && (
               <span class="prechat-error" role="alert">
                 {attrs.error}

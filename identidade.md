@@ -1,12 +1,16 @@
 # Widget Pipeelo — Identificação do cliente
 
 > **Status: parcialmente implementado.** O subconjunto básico do `setUser`
-> (`name`/`email`/`phone`/`document`, sem assinatura) está implementado de ponta a
+> (`name`/`email`/`phone`/`document` e os dados de cadastro
+> `gender`/`birthday`/`country`/`state`/`city`/`cep`/`street`/`number`/`neighborhood`,
+> sem assinatura) está implementado de ponta a
 > ponta — comando no loader, `identify` no protocolo, bloco `user` em todo envio;
 > `setUser(null)` faz o papel do `reset`. O restante — `ref`, `attributes`,
 > `signature` e o modo verificado (HMAC/JWT) — segue como spec, pendente de backend.
 > O pré-chat (formulário quando o `setUser` não cobre os campos exigidos) está
 > implementado no painel — spec em [`pre-chat.md`](./pre-chat.md).
+> O link direto do painel (fora de iframe) aceita os mesmos campos no `?` ou no `#` —
+> ver "Dados no link" no [`README.md`](./README.md).
 
 ## O problema
 
@@ -61,6 +65,7 @@ Campos (todos opcionais):
 |---|---|---|
 | `ref` | `string` | Identificador do cliente **no seu sistema**. É o que a assinatura protege e o que a Pipeelo usa para relacionar/dedupe. **Não** confundir com o `external_id` (token de sessão anônimo do loader). |
 | `name` / `email` / `phone` / `document` | `string` | Já previstos no contrato da API como "atributos de primeiro contato". `document` é CPF ou CNPJ. |
+| `gender` / `birthday` / `country` / `state` / `city` / `cep` / `street` / `number` / `neighborhood` | `string` | Dados de cadastro do cliente. `gender`, `birthday` e `cep` têm formato (abaixo); os demais são texto livre. |
 | `attributes` | `object` (string/number/boolean) | Chaves livres. Aqui entram CPF, plano, id de pedido, etc. |
 | `signature` | `string` | HMAC-SHA256 hex de `ref`, gerado no **seu backend** (ver "Modo verificado"). |
 
@@ -72,6 +77,12 @@ formulário pré-chat):
 | `email` | o que o `FILTER_VALIDATE_EMAIL` da API aceita (sem parte local entre aspas nem IP literal) | aparado |
 | `phone` | brasileiro com DDD, com ou sem máscara e `55`/`+55` (`'+55 62 99999-0000'`, `'(62) 99999-0000'`, `'5562999990000'`; o `wa_id` antigo sem o 9, `'556299990000'`, ganha o 9); estrangeiro só com `+` e o código do país | E.164: `'+5562999990000'` |
 | `document` | CPF ou CNPJ (alfanumérico incluso) com dígito verificador válido, com ou sem máscara | sem máscara, em maiúsculas: `'52998224725'`, `'12ABC34501DE35'` |
+| `gender` | `masculino`/`feminino`, `masculine`/`feminine` ou `m`/`f`, sem diferenciar maiúscula | `'masculine'` ou `'feminine'` |
+| `birthday` | `DD/MM/AAAA`, `DDMMAAAA` ou `AAAA-MM-DD`, data real entre 1900 e hoje | `'1990-03-05'` |
+| `cep` | 8 dígitos, com ou sem hífen | só os dígitos: `'01310100'` |
+
+Os demais dados de cadastro (`country`, `state`, `city`, `street`, `number` e
+`neighborhood`) são texto livre: só são aparados.
 
 Valor fora do formato não conta para o pré-chat (o formulário pede o campo) e, se o
 visitante não o substituir, segue no bloco `user` como veio — o painel não descarta o que o

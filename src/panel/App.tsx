@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { safeAccentColor, textColorOn } from '../shared/color';
+import type { WidgetUser } from '../shared/protocol';
 import { normalizeTheme, prefersDarkNow, themeIsDark } from '../shared/theme';
 import { normalizeDisplayMode } from '../shared/widget-config';
 import { fetchConfig } from './api/client';
@@ -24,6 +25,7 @@ export interface PanelParams {
   eid: string;
   lastread: string | null;
   mode: string | null;
+  user: WidgetUser | null;
 }
 
 type View = 'boot' | 'form' | 'thread';
@@ -48,6 +50,7 @@ export function App({ params }: { params: PanelParams }) {
       }
     }, chat.setIdentity);
     if (!isEmbedded()) chat.notifyVisibility(true);
+    if (params.user) chat.setFormUser(params.user);
   }, []);
 
   const landedRef = useRef(false);
